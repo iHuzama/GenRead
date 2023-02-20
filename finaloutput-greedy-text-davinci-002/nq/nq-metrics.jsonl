@@ -1,0 +1,1 @@
+{"outputfile": "finaloutput-greedy-text-davinci-002/nq/nq-test-p1.jsonl", "prompt": "Refer to the passage below and answer the following question with just one entity. \n\n Passage: {background} \n\n Question: {query} \n\n The answer is", "exact match": 0.0753, "length": 2.3028}
