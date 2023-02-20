@@ -5,6 +5,9 @@ import threading
 import json
 import _thread
 from tqdm import tqdm
+from itertools import chain
+from xfact_lslms.client.lslms_client import LSMSClient
+MAX_BACTH_SIZE = 8
 
 from contextlib import contextmanager
 from collections import defaultdict
@@ -76,23 +79,41 @@ def run_embeddings(input_text, engine='text-similarity-davinci-001'):
 
 
 def run_inference(inputs_with_prompts, engine, max_tokens, num_sequence=1, temp=0):
-
+    client = LSMSClient('user', 'KtZ5nSgk')
+    
     completions = {"choices": []}
     for _ in range(200):
         try:
-            with time_limit(20, 'run gpt-3'):
-                completions = openai.Completion.create(
-                    engine=engine, 
-                    max_tokens=max_tokens, 
-                    prompt=inputs_with_prompts, 
-                    temperature=temp, 
-                    n=num_sequence, # num of returned sequence
-                    )
+            with time_limit(200, 'run LLM Service'):
+                if num_sequence > 1:
+                    inputs_with_prompts_batched = [[i]*num_sequence for i in inputs_with_prompts]
+                    inputs_with_prompts_batched = list(chain.from_iterable(inputs_with_prompts_batched))
+                else:
+                    inputs_with_prompts_batched = inputs_with_prompts
+
+                batch_size = len(inputs_with_prompts_batched)
+                n = MAX_BACTH_SIZE
+                for i in range(0, batch_size, n):
+                    responce = client.call(inputs_with_prompts_batched[i: i+n], generate_kwargs={'max_length': max_tokens, 'do_sample': True},tokenizer_kwargs={'padding':True})
+                    if responce and 'error' not in responce:
+                        completions['choices'].extend(responce['decoded_text'])
+                    else:
+                        raise Exception(responce)
+            #with time_limit(20, 'run gpt-3'):
+            #    completions = openai.Completion.create(
+            #        engine=engine, 
+            #        max_tokens=max_tokens, 
+            #        prompt=inputs_with_prompts, 
+            #        temperature=temp, 
+            #        n=num_sequence, # num of returned sequence
+            #        )
                 break
         except:
-                time.sleep(2)
+            if 'error' in responce:
+                raise Exception(responce)
+            time.sleep(2)
 
-    outputs = [c["text"] for c in completions["choices"]]
+    outputs = [c for c in completions["choices"]]
     return outputs
 
 
@@ -112,7 +133,7 @@ def run_main(inlines, outfile, engine, prompt, max_tokens, n=1, temp=0):
     while index < len(inlines):
         inputs, answers = [], []
         inputs_with_prompts = []
-        for _ in range(20):
+        for _ in range(MAX_BACTH_SIZE):
             if index >= len(inlines): break
             input_with_prompt = add_prompt(inlines[index], prompt)
             inputs.append(inlines[index]['question']) ## a string
