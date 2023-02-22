@@ -1,1 +1,0 @@
-{"outputfile": "backgrounds-greedy-text-davinci-002/nq/nq-test-p1.jsonl", "prompt": "Provide a background document from Wikipedia to answer the given question. \n\n {query} \n\n", "recall@k": 0.3219, "length": 178.449}

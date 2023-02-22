@@ -1,6 +1,7 @@
 import argparse
 import os
 import json
+import random
 
 from inference import run_main
 from evaluation import (
@@ -31,6 +32,12 @@ def step1(dataset, datatype, split, max_tokens, engine, prompt, pid, n, temp):
 
     inputfile = f'indatasets/{dataset}/{dataset}-{split}.jsonl'
     inlines = readfiles(inputfile)
+    
+    subset_size, randomly_sample = 100, False
+    if randomly_sample:
+        inlines = random.sample(inlines, subset_size)
+    else:
+        inlines = inlines[:subset_size]
 
     if (temp is None) or (temp == 0):
         outputfolder = f'backgrounds-greedy-{engine}/{dataset}'
